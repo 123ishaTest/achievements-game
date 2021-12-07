@@ -1,18 +1,62 @@
 <template>
   <div id="app">
-    <img alt="Vue logo" src="./assets/logo.png">
-    <HelloWorld msg="Welcome to Your Vue.js + TypeScript App"/>
+    <p>You have {{ points }} points</p>
+    <input v-model="username" type="text">
+    <input v-model="password" type="password">
+    <button @click="login">Log in!</button>
+    <p>Api token {{ apiToken }}</p>
   </div>
 </template>
 
 <script lang="ts">
 import Vue from 'vue';
-import HelloWorld from './components/HelloWorld.vue';
+import axios from "axios";
 
 export default Vue.extend({
   name: 'App',
-  components: {
-    HelloWorld
+  components: {},
+  data() {
+    return {
+      points: 0,
+      username: "",
+      password: "",
+      apiToken: "",
+      gameId: "achievement-game",
+    }
+  },
+  methods: {
+    login() {
+      axios.post('https://127.0.0.1:8000/api/login/' + this.gameId, {
+        username: this.username,
+        password: this.password
+      }).then(response => {
+        this.apiToken = response.data.token
+      }).catch(error => {
+        console.log(error.response.data);
+      });
+    }
+  },
+  mounted() {
+    setInterval(() => {
+      this.points++;
+      if (this.apiToken) {
+        axios.post('https://127.0.0.1:8000/api/statistics/' + this.gameId + "/points",
+            {},
+            {
+              params: {
+                value: this.points,
+              },
+              headers: {
+                'X-AUTH-TOKEN': this.apiToken,
+              }
+            }
+        ).then(response => {
+          console.log(response.data);
+        }).catch(error => {
+          console.log(error.response.data);
+        });
+      }
+    }, 1000)
   }
 });
 </script>

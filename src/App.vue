@@ -1,16 +1,18 @@
 <template>
   <div id="app">
     <p>You have {{ points }} points</p>
-    <input v-model="username" type="text">
-    <input v-model="password" type="password">
-    <button @click="login">Log in!</button>
-    <p>Api token {{ apiToken }}</p>
+    <div v-if="!isLoggedIn">
+      <input v-model="username" type="text">
+      <input v-model="password" type="password">
+      <button @click="login">Log in!</button>
+    </div>
+    <p>{{ isLoggedIn ? 'Logged in as ' + client.username : 'Not logged in...' }}</p>
   </div>
 </template>
 
-<script lang="ts">
+<script>
 import Vue from 'vue';
-import axios from "axios";
+import {AchievementClient} from "achievements-client";
 
 export default Vue.extend({
   name: 'App',
@@ -20,41 +22,30 @@ export default Vue.extend({
       points: 0,
       username: "",
       password: "",
-      apiToken: "",
       gameId: "achievement-game",
+      client: new AchievementClient(),
     }
+  },
+  computed: {
+    isLoggedIn() {
+      return this.client.isLoggedIn();
+    },
   },
   methods: {
     login() {
-      axios.post('https://127.0.0.1:8000/api/login/' + this.gameId, {
-        username: this.username,
-        password: this.password
-      }).then(response => {
-        this.apiToken = response.data.token
-      }).catch(error => {
-        console.log(error.response.data);
-      });
+      this.client.login(this.username, this.password);
     }
   },
   mounted() {
+    this.client.initialize("dummy-game", true);
+
     setInterval(() => {
       this.points++;
-      if (this.apiToken) {
-        axios.post('https://127.0.0.1:8000/api/statistics/' + this.gameId + "/points",
-            {},
-            {
-              params: {
-                value: this.points,
-              },
-              headers: {
-                'X-AUTH-TOKEN': this.apiToken,
-              }
+      if (this.client.isLoggedIn()) {
+        this.client.submit({
+              "/points": this.points
             }
-        ).then(response => {
-          console.log(response.data);
-        }).catch(error => {
-          console.log(error.response.data);
-        });
+        );
       }
     }, 1000)
   }
